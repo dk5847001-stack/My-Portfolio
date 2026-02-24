@@ -1,0 +1,103 @@
+
+/* ================= NAVBAR ================= */
+
+.navbar{
+    position:fixed;
+    top:25px;
+    left:50%;
+    transform:translateX(-50%);
+    width:95%;
+    max-width:1300px;
+
+    padding:18px 0;
+    border-radius:18px;
+
+    background:transparent; /* fully transparent */
+
+   
+
+    transition:all 0.4s ease;
+    -webkit-transition:all 0.4s ease;
+
+    z-index:9999;
+}
+
+/* Scroll shrink effect */
+.navbar.scrolled{
+    top:10px;
+    transform:translateX(-50%) scale(0.97);
+}
+
+/* ================= MENU ================= */
+
+.nav-menu{
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    list-style:none;
+    gap:35px;
+}
+
+/* Nav links */
+.nav-menu li a{
+    position:relative;
+    text-decoration:none;
+    color:#ffffff;
+    font-size:16px;
+    font-weight:500;
+    padding:8px 12px;
+    letter-spacing:0.5px;
+
+    transition:all 0.35s ease;
+    -webkit-transition:all 0.35s ease;
+}
+
+/* Hover lift effect */
+.nav-menu li a:hover{
+    color:#ff4c60;
+    transform:translateY(-5px);
+    -webkit-transform:translateY(-5px);
+}
+
+/* Animated underline */
+.nav-menu li a::after{
+    content:"";
+    position:absolute;
+    left:50%;
+    bottom:-6px;
+    width:0%;
+    height:2px;
+    background:#ff4c60;
+    transition:0.4s ease;
+    -webkit-transition:0.4s ease;
+    transform:translateX(-50%);
+}
+
+.nav-menu li a:hover::after{
+    width:100%;
+}
+
+/* Click press animation */
+.nav-menu li a:active{
+    transform:scale(0.95);
+}
+
+/* Responsive */
+@media(max-width:768px){
+
+    .navbar{
+        width:96%;
+        padding:15px;
+    }
+
+    .nav-menu{
+        flex-direction:column;
+        gap:18px;
+    }
+
+}
+
+/* Smooth scroll */
+html{
+    scroll-behavior:smooth;
+}
