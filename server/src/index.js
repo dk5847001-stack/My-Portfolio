@@ -12,6 +12,7 @@ import {
 import { signAuthToken } from "./lib/auth.js";
 import { requireAuth, requireRole } from "./middleware/auth.js";
 import { User } from "./models/user.js";
+import "./models/index.js";
 
 dotenv.config();
 
@@ -60,6 +61,7 @@ app.get("/api/health", (_req, res) => {
     apiUrl: DEFAULT_API_URL,
     database:
       mongoose.connection.readyState === 1 ? "connected" : "not-connected",
+    models: mongoose.modelNames(),
   });
 });
 
