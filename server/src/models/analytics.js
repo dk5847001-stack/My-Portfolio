@@ -31,6 +31,11 @@ const analyticsSchema = new mongoose.Schema(
       default: 0,
       min: 0,
     },
+    clickCount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
     topPages: [
       {
         path: {
@@ -76,6 +81,76 @@ const analyticsSchema = new mongoose.Schema(
         min: 0,
       },
     },
+    topClicks: [
+      {
+        target: {
+          type: String,
+          trim: true,
+          maxlength: 160,
+        },
+        path: {
+          type: String,
+          trim: true,
+          maxlength: 200,
+        },
+        count: {
+          type: Number,
+          default: 0,
+          min: 0,
+        },
+        lastClickedAt: Date,
+      },
+    ],
+    heatmapPoints: [
+      {
+        path: {
+          type: String,
+          trim: true,
+          maxlength: 200,
+        },
+        x: {
+          type: Number,
+          min: 0,
+          max: 1,
+        },
+        y: {
+          type: Number,
+          min: 0,
+          max: 1,
+        },
+        count: {
+          type: Number,
+          default: 0,
+          min: 0,
+        },
+        lastSeen: Date,
+      },
+    ],
+    liveVisitors: [
+      {
+        sessionId: {
+          type: String,
+          trim: true,
+          maxlength: 120,
+        },
+        path: {
+          type: String,
+          trim: true,
+          maxlength: 200,
+        },
+        source: {
+          type: String,
+          trim: true,
+          maxlength: 120,
+        },
+        userAgent: {
+          type: String,
+          trim: true,
+          maxlength: 300,
+        },
+        lastSeen: Date,
+      },
+    ],
   },
   {
     timestamps: true,
