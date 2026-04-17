@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@portfolio/shared": "1.0.0",
+    "framer-motion": "^12.38.0",
     "react": "*",
     "react-dom": "*",
     "react-router-dom": "^7.14.0"
