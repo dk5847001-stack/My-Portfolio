@@ -1,0 +1,34 @@
+name: CI/CD
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build client
+        run: npm run build --workspace @portfolio/client
+
+      - name: Build admin
+        run: npm run build --workspace @portfolio/admin
+
+      - name: Server smoke import
+        run: |
+          node --input-type=module -e "Promise.all([import('./server/src/controllers/integrations-controller.js'), import('./server/src/controllers/chat-controller.js'), import('./server/src/controllers/notifications-controller.js')]).catch((error) => { console.error(error); process.exit(1); })"
