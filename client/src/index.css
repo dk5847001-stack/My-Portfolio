@@ -312,7 +312,8 @@ textarea {
 }
 
 .two-column,
-.contact-section {
+.contact-section,
+.ask-section {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
@@ -414,6 +415,66 @@ textarea {
 .contact-form {
   padding: 1.5rem;
   border-radius: 1.7rem;
+}
+
+.chatbot-card {
+  display: grid;
+  gap: 1rem;
+}
+
+.chatbot-bubble,
+.chatbot-form,
+.suggestion-pill {
+  border: 1px solid var(--line);
+  background: var(--panel);
+}
+
+.chatbot-bubble,
+.chatbot-form {
+  border-radius: 1.5rem;
+}
+
+.chatbot-bubble {
+  padding: 1.4rem;
+}
+
+.chatbot-bubble p {
+  margin: 1rem 0 0;
+  line-height: 1.8;
+  color: var(--text);
+}
+
+.suggestion-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  margin-top: 1.2rem;
+}
+
+.suggestion-pill {
+  padding: 0.75rem 1rem;
+  border-radius: 999px;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.chatbot-form {
+  padding: 1.3rem;
+}
+
+.chatbot-form label {
+  display: block;
+}
+
+.chatbot-form textarea {
+  width: 100%;
+  margin-top: 0.45rem;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: var(--panel-strong);
+  color: var(--text);
+  padding: 0.95rem 1rem;
+  outline: none;
 }
 
 .field-grid {

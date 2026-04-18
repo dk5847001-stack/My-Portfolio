@@ -159,6 +159,7 @@ select {
 }
 
 .error-banner,
+.success-banner,
 .table-placeholder {
   padding: 0.9rem 1rem;
   border-radius: 1rem;
@@ -168,6 +169,12 @@ select {
   background: rgba(255, 153, 142, 0.12);
   border: 1px solid rgba(255, 153, 142, 0.26);
   color: var(--admin-danger);
+}
+
+.success-banner {
+  background: rgba(151, 233, 192, 0.12);
+  border: 1px solid rgba(151, 233, 192, 0.24);
+  color: var(--admin-success);
 }
 
 .dashboard-shell {
@@ -288,11 +295,17 @@ th {
 }
 
 .switch-row,
-.row-between {
+.row-between,
+.button-row,
+.chip-row {
   display: flex;
   gap: 1rem;
   flex-wrap: wrap;
   align-items: center;
+}
+
+.row-between,
+.button-row {
   justify-content: space-between;
 }
 
@@ -308,6 +321,18 @@ th {
   border: 1px solid var(--admin-line);
   color: var(--admin-accent);
   text-transform: capitalize;
+}
+
+.spam-clean {
+  color: var(--admin-success);
+}
+
+.spam-review {
+  color: #ffd787;
+}
+
+.spam-blocked {
+  color: var(--admin-danger);
 }
 
 .upload-zone {
@@ -342,6 +367,22 @@ th {
   place-items: center;
   font-weight: 800;
   letter-spacing: 0.2em;
+  color: var(--admin-muted);
+}
+
+.result-card {
+  display: grid;
+  gap: 0.7rem;
+  padding: 1rem;
+  border-radius: 1rem;
+  border: 1px solid var(--admin-line);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.result-card pre {
+  margin: 0;
+  white-space: pre-wrap;
+  font-family: "Consolas", "Courier New", monospace;
   color: var(--admin-muted);
 }
 

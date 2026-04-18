@@ -2,6 +2,8 @@ import { asyncHandler } from "../utils/async-handler.js";
 import { ApiError, createNotFoundMessage } from "../utils/api-error.js";
 import { serializeDocument } from "../utils/serializers.js";
 import { Blog } from "../models/blog.js";
+import { generateSeoMeta } from "../services/smart-features.js";
+import { Settings } from "../models/settings.js";
 
 export const listBlogs = asyncHandler(async (req, res) => {
   const filter = {};
@@ -32,8 +34,21 @@ export const getBlog = asyncHandler(async (req, res) => {
 });
 
 export const createBlog = asyncHandler(async (req, res) => {
+  const settings = await Settings.findOne().sort({ updatedAt: -1 });
+  const payload = { ...req.body };
+
+  if (!payload.seo || (!payload.seo.title && !payload.seo.description && !(payload.seo.keywords || []).length)) {
+    payload.seo = generateSeoMeta({
+      title: payload.title,
+      description: payload.excerpt,
+      content: payload.content,
+      keywords: payload.tags,
+      siteName: settings?.siteName,
+    });
+  }
+
   const blog = await Blog.create({
-    ...req.body,
+    ...payload,
     author: req.auth.user._id,
   });
 
@@ -42,9 +57,21 @@ export const createBlog = asyncHandler(async (req, res) => {
 
 export const updateBlog = asyncHandler(async (req, res) => {
   const updates = { ...req.body };
+  const settings = await Settings.findOne().sort({ updatedAt: -1 });
 
   if (!updates.author) {
     updates.author = req.auth.user._id;
+  }
+
+  if (updates.seo === null || updates.refreshSeo === true) {
+    delete updates.refreshSeo;
+    updates.seo = generateSeoMeta({
+      title: updates.title,
+      description: updates.excerpt,
+      content: updates.content,
+      keywords: updates.tags,
+      siteName: settings?.siteName,
+    });
   }
 
   const blog = await Blog.findByIdAndUpdate(req.params.blogId, updates, {

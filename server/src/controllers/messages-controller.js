@@ -3,6 +3,7 @@ import { ApiError, createNotFoundMessage } from "../utils/api-error.js";
 import { normalizeEmail, sanitizeText } from "../utils/request.js";
 import { serializeDocument } from "../utils/serializers.js";
 import { Message } from "../models/message.js";
+import { evaluateSpam } from "../services/smart-features.js";
 
 export const listMessages = asyncHandler(async (req, res) => {
   const filter = {};
@@ -40,12 +41,26 @@ export const createMessage = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Name, email, and message are required.");
   }
 
+  const spamCheck = evaluateSpam({
+    name,
+    email,
+    subject: sanitizeText(req.body?.subject || ""),
+    message: body,
+  });
+
+  if (spamCheck.verdict === "blocked") {
+    throw new ApiError(400, "Message flagged as spam. Please rewrite it with more project-specific details.");
+  }
+
   const message = await Message.create({
     ...req.body,
     name,
     email,
     message: body,
     statusHistory: [{ status: "new" }],
+    spamScore: spamCheck.score,
+    spamSignals: spamCheck.signals,
+    spamVerdict: spamCheck.verdict,
   });
 
   res.status(201).json({ message: serializeDocument(message) });

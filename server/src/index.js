@@ -11,6 +11,7 @@ import { blogsRouter } from "./routes/blogs-routes.js";
 import { messagesRouter } from "./routes/messages-routes.js";
 import { analyticsRouter } from "./routes/analytics-routes.js";
 import { settingsRouter } from "./routes/settings-routes.js";
+import { smartFeaturesRouter } from "./routes/smart-features-routes.js";
 import { errorHandler, notFoundHandler } from "./middleware/error-handler.js";
 import "./models/index.js";
 
@@ -53,6 +54,7 @@ app.get("/api/health", (_req, res) => {
       "/api/messages",
       "/api/analytics",
       "/api/settings",
+      "/api/smart",
     ],
   });
 });
@@ -65,6 +67,7 @@ app.use("/api/blogs", blogsRouter);
 app.use("/api/messages", messagesRouter);
 app.use("/api/analytics", analyticsRouter);
 app.use("/api/settings", settingsRouter);
+app.use("/api/smart", smartFeaturesRouter);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

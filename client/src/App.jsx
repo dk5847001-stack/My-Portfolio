@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
+import { DEFAULT_API_URL } from "@portfolio/shared";
 
 const skills = [
   "React",
@@ -64,6 +65,12 @@ const contactInitialState = {
   message: "",
 };
 
+const chatbotSuggestions = [
+  "What stack do you use?",
+  "What kind of projects do you build?",
+  "How can I contact you?",
+];
+
 const sectionVariant = {
   hidden: { opacity: 0, y: 36 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } },
@@ -92,6 +99,13 @@ export default function App() {
   const [theme, setTheme] = useState("dark");
   const [contactForm, setContactForm] = useState(contactInitialState);
   const [contactState, setContactState] = useState({ busy: false, message: "", error: "" });
+  const [chatQuestion, setChatQuestion] = useState("");
+  const [chatState, setChatState] = useState({
+    busy: false,
+    answer: "Ask about my skills, projects, or how we can work together.",
+    suggestions: chatbotSuggestions,
+    error: "",
+  });
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -102,7 +116,7 @@ export default function App() {
     setContactState({ busy: true, message: "", error: "" });
 
     try {
-      const response = await fetch("http://localhost:5000/api/messages", {
+      const response = await fetch(`${DEFAULT_API_URL}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(contactForm),
@@ -126,6 +140,43 @@ export default function App() {
         message: "",
         error: error.message,
       });
+    }
+  };
+
+  const askChatbot = async (question) => {
+    const nextQuestion = (question || chatQuestion).trim();
+
+    if (!nextQuestion) {
+      return;
+    }
+
+    setChatState((current) => ({ ...current, busy: true, error: "" }));
+
+    try {
+      const response = await fetch(`${DEFAULT_API_URL}/smart/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question: nextQuestion }),
+      });
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(data.message || "Unable to answer right now.");
+      }
+
+      setChatState({
+        busy: false,
+        answer: data.answer,
+        suggestions: data.suggestions || chatbotSuggestions,
+        error: "",
+      });
+      setChatQuestion("");
+    } catch (error) {
+      setChatState((current) => ({
+        ...current,
+        busy: false,
+        error: error.message,
+      }));
     }
   };
 
@@ -278,6 +329,63 @@ export default function App() {
                 {skill}
               </motion.div>
             ))}
+          </div>
+        </motion.section>
+
+        <motion.section
+          id="ask"
+          className="content-section ask-section"
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.2 }}
+          variants={sectionVariant}
+        >
+          <div>
+            <SectionHeading
+              eyebrow="Ask About Me"
+              title="A smart assistant trained on this portfolio's profile."
+              text="Use the quick prompts or ask your own question to learn about skills, project fit, and collaboration style."
+            />
+            <div className="suggestion-row">
+              {chatState.suggestions.map((suggestion) => (
+                <button
+                  key={suggestion}
+                  type="button"
+                  className="suggestion-pill"
+                  onClick={() => askChatbot(suggestion)}
+                >
+                  {suggestion}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="chatbot-card">
+            <div className="chatbot-bubble">
+              <span className="meta-chip">AI reply</span>
+              <p>{chatState.answer}</p>
+            </div>
+            <form
+              className="chatbot-form"
+              onSubmit={(event) => {
+                event.preventDefault();
+                askChatbot();
+              }}
+            >
+              <label>
+                <span>Your question</span>
+                <textarea
+                  rows="4"
+                  value={chatQuestion}
+                  onChange={(event) => setChatQuestion(event.target.value)}
+                  placeholder="Ask about my skills, projects, process, or availability"
+                />
+              </label>
+              {chatState.error ? <p className="form-error">{chatState.error}</p> : null}
+              <button type="submit" className="primary-button form-button" disabled={chatState.busy}>
+                {chatState.busy ? "Thinking..." : "Ask now"}
+              </button>
+            </form>
           </div>
         </motion.section>
 

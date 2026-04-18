@@ -47,6 +47,11 @@ const settingsSchema = new mongoose.Schema(
         trim: true,
         maxlength: 80,
       },
+      aiAssistantName: {
+        type: String,
+        trim: true,
+        maxlength: 80,
+      },
     },
     branding: {
       logoUrl: {

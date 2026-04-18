@@ -44,6 +44,24 @@ const messageSchema = new mongoose.Schema(
     },
     statusHistory: [statusHistorySchema],
     repliedAt: Date,
+    spamScore: {
+      type: Number,
+      min: 0,
+      max: 100,
+      default: 0,
+    },
+    spamSignals: [
+      {
+        type: String,
+        trim: true,
+        maxlength: 80,
+      },
+    ],
+    spamVerdict: {
+      type: String,
+      enum: ["clean", "review", "blocked"],
+      default: "clean",
+    },
   },
   {
     timestamps: true,
@@ -52,5 +70,6 @@ const messageSchema = new mongoose.Schema(
 
 messageSchema.index({ email: 1, createdAt: -1 });
 messageSchema.index({ status: 1, createdAt: -1 });
+messageSchema.index({ spamVerdict: 1, createdAt: -1 });
 
 export const Message = mongoose.model("Message", messageSchema);

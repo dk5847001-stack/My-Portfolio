@@ -52,6 +52,15 @@ const blogSchema = new mongoose.Schema(
       max: 120,
     },
     seo: seoSchema,
+    aiGenerated: {
+      type: Boolean,
+      default: false,
+    },
+    generationPrompt: {
+      type: String,
+      trim: true,
+      maxlength: 240,
+    },
   },
   {
     timestamps: true,

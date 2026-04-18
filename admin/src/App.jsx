@@ -18,6 +18,7 @@ const navItems = [
   { to: "/users", label: "Users", roles: canManageUsers },
   { to: "/projects", label: "Projects", roles: allowedAdminRoles },
   { to: "/blogs", label: "Blogs", roles: allowedAdminRoles },
+  { to: "/ai", label: "AI Lab", roles: allowedAdminRoles },
   { to: "/messages", label: "Messages", roles: allowedAdminRoles },
   { to: "/profile", label: "Profile", roles: allowedAdminRoles },
   { to: "/media", label: "Media", roles: allowedAdminRoles },
@@ -45,6 +46,19 @@ const emptyBlog = {
   tags: "",
   status: "draft",
   readTimeMinutes: 5,
+};
+
+const emptyDraftRequest = {
+  topic: "",
+  keywords: "",
+  tone: "professional",
+};
+
+const emptySeoRequest = {
+  title: "",
+  description: "",
+  content: "",
+  keywords: "",
 };
 
 const emptyUser = {
@@ -243,6 +257,14 @@ function AppShell({ session, logout }) {
             }
           />
           <Route
+            path="/ai"
+            element={
+              <Guard session={session} allowedRoles={allowedAdminRoles}>
+                <AiLabPage session={session} />
+              </Guard>
+            }
+          />
+          <Route
             path="/messages"
             element={
               <Guard session={session} allowedRoles={allowedAdminRoles}>
@@ -366,6 +388,7 @@ function OverviewPage({ session }) {
           <ul className="simple-list">
             <li>Create a featured project</li>
             <li>Publish a new blog post</li>
+            <li>Generate an AI blog draft and SEO meta</li>
             <li>Review unread messages</li>
             <li>Refresh brand colors and SEO meta</li>
           </ul>
@@ -565,6 +588,7 @@ function BlogsPage({ session }) {
   const [state, setState] = useState({ loading: true, error: "", blogs: [] });
   const [form, setForm] = useState(emptyBlog);
   const [busy, setBusy] = useState(false);
+  const [helperState, setHelperState] = useState({ busy: false, message: "", error: "" });
 
   const loadBlogs = async () => {
     try {
@@ -604,10 +628,64 @@ function BlogsPage({ session }) {
     }
   };
 
+  const generateDraft = async () => {
+    try {
+      setHelperState({ busy: true, message: "", error: "" });
+      const data = await apiRequest(
+        "/smart/blog-draft",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            topic: form.title || form.slug || "Portfolio systems",
+            keywords: form.tags.split(",").map((item) => item.trim()).filter(Boolean),
+            tone: "professional",
+          }),
+        },
+        session.token
+      );
+      setForm((current) => ({
+        ...current,
+        ...data.draft,
+        tags: (data.draft.tags || []).join(", "),
+      }));
+      setHelperState({ busy: false, message: "AI draft inserted into the form.", error: "" });
+    } catch (error) {
+      setHelperState({ busy: false, message: "", error: error.message });
+    }
+  };
+
+  const generateSeo = async () => {
+    try {
+      setHelperState({ busy: true, message: "", error: "" });
+      const data = await apiRequest(
+        "/smart/seo",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            title: form.title,
+            description: form.excerpt,
+            content: form.content,
+            keywords: form.tags.split(",").map((item) => item.trim()).filter(Boolean),
+          }),
+        },
+        session.token
+      );
+      setHelperState({
+        busy: false,
+        message: `SEO ready: ${data.seo.title}`,
+        error: "",
+      });
+    } catch (error) {
+      setHelperState({ busy: false, message: "", error: error.message });
+    }
+  };
+
   return (
     <section className="page-stack">
       <PanelHeader title="Manage Blogs" text="Draft, publish, and organize thought pieces or announcements." />
       {state.error ? <p className="error-banner">{state.error}</p> : null}
+      {helperState.error ? <p className="error-banner">{helperState.error}</p> : null}
+      {helperState.message ? <p className="success-banner">{helperState.message}</p> : null}
       <div className="panel-grid">
         <form className="panel-card stack" onSubmit={submit}>
           <p className="eyebrow">New blog</p>
@@ -632,6 +710,14 @@ function BlogsPage({ session }) {
             <span>Content</span>
             <textarea value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })} rows="6" />
           </label>
+          <div className="button-row">
+            <button type="button" className="ghost-button" onClick={generateDraft} disabled={busy || helperState.busy}>
+              {helperState.busy ? "Working..." : "Generate draft"}
+            </button>
+            <button type="button" className="ghost-button" onClick={generateSeo} disabled={busy || helperState.busy}>
+              Generate SEO
+            </button>
+          </div>
           <button type="submit" className="solid-button" disabled={busy}>
             {busy ? "Saving..." : "Create blog"}
           </button>
@@ -703,9 +789,18 @@ function MessagesPage({ session }) {
                   {message.name} | {message.email}
                 </p>
               </div>
-              <span className="status-chip">{message.status}</span>
+              <div className="chip-row">
+                <span className="status-chip">{message.status}</span>
+                <span className={`status-chip spam-${message.spamVerdict || "clean"}`}>
+                  Spam {message.spamVerdict || "clean"}
+                </span>
+              </div>
             </div>
             <p>{message.message}</p>
+            <p className="muted">
+              Spam score: {message.spamScore || 0}
+              {message.spamSignals?.length ? ` | Signals: ${message.spamSignals.join(", ")}` : ""}
+            </p>
             <div className="row-between">
               <span className="muted">{new Date(message.createdAt).toLocaleString()}</span>
               {message.status !== "replied" ? (
@@ -716,6 +811,111 @@ function MessagesPage({ session }) {
             </div>
           </article>
         ))}
+      </div>
+    </section>
+  );
+}
+
+function AiLabPage({ session }) {
+  const [draftRequest, setDraftRequest] = useState(emptyDraftRequest);
+  const [draftState, setDraftState] = useState({ busy: false, error: "", draft: null });
+  const [seoRequest, setSeoRequest] = useState(emptySeoRequest);
+  const [seoState, setSeoState] = useState({ busy: false, error: "", seo: null });
+
+  const runDraft = async (event) => {
+    event.preventDefault();
+    try {
+      setDraftState({ busy: true, error: "", draft: null });
+      const data = await apiRequest(
+        "/smart/blog-draft",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            topic: draftRequest.topic,
+            tone: draftRequest.tone,
+            keywords: draftRequest.keywords.split(",").map((item) => item.trim()).filter(Boolean),
+          }),
+        },
+        session.token
+      );
+      setDraftState({ busy: false, error: "", draft: data.draft });
+    } catch (error) {
+      setDraftState({ busy: false, error: error.message, draft: null });
+    }
+  };
+
+  const runSeo = async (event) => {
+    event.preventDefault();
+    try {
+      setSeoState({ busy: true, error: "", seo: null });
+      const data = await apiRequest(
+        "/smart/seo",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            ...seoRequest,
+            keywords: seoRequest.keywords.split(",").map((item) => item.trim()).filter(Boolean),
+          }),
+        },
+        session.token
+      );
+      setSeoState({ busy: false, error: "", seo: data.seo });
+    } catch (error) {
+      setSeoState({ busy: false, error: error.message, seo: null });
+    }
+  };
+
+  return (
+    <section className="page-stack">
+      <PanelHeader title="AI & Smart Features" text="Generate blog drafts, produce SEO meta, and use the portfolio smart layer from one place." />
+      <div className="panel-grid">
+        <form className="panel-card stack" onSubmit={runDraft}>
+          <p className="eyebrow">Auto blog generation</p>
+          <TextFields form={draftRequest} setForm={setDraftRequest} fields={[
+            ["topic", "Topic"],
+            ["keywords", "Keywords"],
+            ["tone", "Tone"],
+          ]} />
+          {draftState.error ? <p className="error-banner">{draftState.error}</p> : null}
+          <button type="submit" className="solid-button" disabled={draftState.busy}>
+            {draftState.busy ? "Generating..." : "Generate blog draft"}
+          </button>
+          {draftState.draft ? (
+            <div className="result-card">
+              <h3>{draftState.draft.title}</h3>
+              <p className="muted">{draftState.draft.excerpt}</p>
+              <p className="muted">Slug: {draftState.draft.slug}</p>
+              <pre>{draftState.draft.content}</pre>
+            </div>
+          ) : null}
+        </form>
+
+        <form className="panel-card stack" onSubmit={runSeo}>
+          <p className="eyebrow">Auto SEO meta</p>
+          <TextFields form={seoRequest} setForm={setSeoRequest} fields={[
+            ["title", "Title"],
+            ["keywords", "Keywords"],
+          ]} />
+          <label className="field">
+            <span>Description</span>
+            <textarea value={seoRequest.description} onChange={(event) => setSeoRequest((current) => ({ ...current, description: event.target.value }))} rows="3" />
+          </label>
+          <label className="field">
+            <span>Content</span>
+            <textarea value={seoRequest.content} onChange={(event) => setSeoRequest((current) => ({ ...current, content: event.target.value }))} rows="6" />
+          </label>
+          {seoState.error ? <p className="error-banner">{seoState.error}</p> : null}
+          <button type="submit" className="solid-button" disabled={seoState.busy}>
+            {seoState.busy ? "Generating..." : "Generate SEO"}
+          </button>
+          {seoState.seo ? (
+            <div className="result-card">
+              <h3>{seoState.seo.title}</h3>
+              <p className="muted">{seoState.seo.description}</p>
+              <p className="muted">Keywords: {(seoState.seo.keywords || []).join(", ")}</p>
+            </div>
+          ) : null}
+        </form>
       </div>
     </section>
   );
