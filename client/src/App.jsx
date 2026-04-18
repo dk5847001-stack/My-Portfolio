@@ -65,6 +65,12 @@ const contactInitialState = {
   message: "",
 };
 
+const liveChatInitialState = {
+  visitorName: "",
+  visitorEmail: "",
+  text: "",
+};
+
 const chatbotSuggestions = [
   "What stack do you use?",
   "What kind of projects do you build?",
@@ -104,6 +110,14 @@ export default function App() {
     busy: false,
     answer: "Ask about my skills, projects, or how we can work together.",
     suggestions: chatbotSuggestions,
+    error: "",
+  });
+  const [liveChatForm, setLiveChatForm] = useState(liveChatInitialState);
+  const [liveChatState, setLiveChatState] = useState({
+    busy: false,
+    conversationId: "",
+    transcript: [],
+    status: "",
     error: "",
   });
 
@@ -180,6 +194,47 @@ export default function App() {
     }
   };
 
+  const submitLiveChat = async (event) => {
+    event.preventDefault();
+    setLiveChatState((current) => ({ ...current, busy: true, error: "" }));
+
+    try {
+      const path = liveChatState.conversationId
+        ? `${DEFAULT_API_URL}/chat/${liveChatState.conversationId}/messages`
+        : `${DEFAULT_API_URL}/chat`;
+      const payload = liveChatState.conversationId
+        ? { text: liveChatForm.text }
+        : liveChatForm;
+
+      const response = await fetch(path, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(data.message || "Unable to start live chat right now.");
+      }
+
+      const conversation = data.conversation;
+      setLiveChatState({
+        busy: false,
+        conversationId: conversation.id,
+        transcript: conversation.messages || [],
+        status: "Live chat message sent. The admin can reply from the dashboard.",
+        error: "",
+      });
+      setLiveChatForm((current) => ({ ...current, text: "" }));
+    } catch (error) {
+      setLiveChatState((current) => ({
+        ...current,
+        busy: false,
+        error: error.message,
+      }));
+    }
+  };
+
   return (
     <div className="app-shell">
       <div className="ambient ambient-one" />
@@ -193,6 +248,7 @@ export default function App() {
           <a href="#about">About</a>
           <a href="#projects">Projects</a>
           <a href="#blog">Blog</a>
+          <a href="#live-chat">Live Chat</a>
           <a href="#contact">Contact</a>
         </nav>
         <button
@@ -474,6 +530,90 @@ export default function App() {
               See Work Samples
             </a>
           </div>
+        </motion.section>
+
+        <motion.section
+          id="live-chat"
+          className="content-section contact-section"
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.2 }}
+          variants={sectionVariant}
+        >
+          <div>
+            <SectionHeading
+              eyebrow="Live Chat"
+              title="Start a direct conversation for project questions."
+              text="This lightweight chat system stores your messages in the admin panel so replies can happen quickly and with context."
+            />
+            <div className="contact-points">
+              <div>
+                <span>Resume PDF</span>
+                <strong>
+                  <a href={`${DEFAULT_API_URL}/integrations/resume.pdf`} target="_blank" rel="noreferrer">
+                    Open generated resume
+                  </a>
+                </strong>
+              </div>
+              <div>
+                <span>Chat status</span>
+                <strong>{liveChatState.status || "No conversation started yet"}</strong>
+              </div>
+            </div>
+            {liveChatState.transcript.length ? (
+              <div className="public-chat-thread">
+                {liveChatState.transcript.map((message, index) => (
+                  <article key={`public-chat-${index}`} className={`public-chat-item ${message.sender}`}>
+                    <span>{message.sender}</span>
+                    <p>{message.text}</p>
+                  </article>
+                ))}
+              </div>
+            ) : null}
+          </div>
+
+          <form className="contact-form" onSubmit={submitLiveChat}>
+            <div className="field-grid">
+              <label>
+                <span>Name</span>
+                <input
+                  value={liveChatForm.visitorName}
+                  onChange={(event) =>
+                    setLiveChatForm((current) => ({ ...current, visitorName: event.target.value }))
+                  }
+                  required={!liveChatState.conversationId}
+                  disabled={Boolean(liveChatState.conversationId)}
+                />
+              </label>
+              <label>
+                <span>Email</span>
+                <input
+                  type="email"
+                  value={liveChatForm.visitorEmail}
+                  onChange={(event) =>
+                    setLiveChatForm((current) => ({ ...current, visitorEmail: event.target.value }))
+                  }
+                  required={!liveChatState.conversationId}
+                  disabled={Boolean(liveChatState.conversationId)}
+                />
+              </label>
+            </div>
+            <label>
+              <span>{liveChatState.conversationId ? "Message" : "Opening message"}</span>
+              <textarea
+                rows="5"
+                value={liveChatForm.text}
+                onChange={(event) =>
+                  setLiveChatForm((current) => ({ ...current, text: event.target.value }))
+                }
+                required
+              />
+            </label>
+            {liveChatState.error ? <p className="form-error">{liveChatState.error}</p> : null}
+            <button type="submit" className="primary-button form-button" disabled={liveChatState.busy}>
+              {liveChatState.busy ? "Sending..." : liveChatState.conversationId ? "Send message" : "Start live chat"}
+            </button>
+          </form>
         </motion.section>
 
         <motion.section

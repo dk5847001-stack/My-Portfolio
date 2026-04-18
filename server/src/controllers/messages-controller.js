@@ -4,6 +4,8 @@ import { normalizeEmail, sanitizeText } from "../utils/request.js";
 import { serializeDocument } from "../utils/serializers.js";
 import { Message } from "../models/message.js";
 import { evaluateSpam } from "../services/smart-features.js";
+import { createNotification } from "../services/notifications.js";
+import { sendEmailNotification } from "../services/email.js";
 
 export const listMessages = asyncHandler(async (req, res) => {
   const filter = {};
@@ -62,6 +64,25 @@ export const createMessage = asyncHandler(async (req, res) => {
     spamSignals: spamCheck.signals,
     spamVerdict: spamCheck.verdict,
   });
+
+  await createNotification({
+    title: "New contact message",
+    message: `${name} sent a message from the contact form.`,
+    type: spamCheck.verdict === "review" ? "warning" : "info",
+    source: "message",
+    sourceId: String(message._id),
+    link: "/messages",
+    metadata: {
+      spamVerdict: spamCheck.verdict,
+      spamScore: spamCheck.score,
+    },
+  });
+
+  await sendEmailNotification({
+    to: process.env.NOTIFICATION_EMAIL,
+    subject: `New portfolio message from ${name}`,
+    text: `${name} (${email}) wrote:\n\n${body}`,
+  }).catch(() => null);
 
   res.status(201).json({ message: serializeDocument(message) });
 });

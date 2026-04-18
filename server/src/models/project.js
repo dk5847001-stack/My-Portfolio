@@ -81,6 +81,30 @@ const projectSchema = new mongoose.Schema(
       type: objectId,
       ref: "User",
     },
+    githubSync: {
+      provider: {
+        type: String,
+        trim: true,
+        maxlength: 30,
+      },
+      repoId: {
+        type: String,
+        trim: true,
+        maxlength: 60,
+      },
+      repoName: {
+        type: String,
+        trim: true,
+        maxlength: 160,
+      },
+      repoOwner: {
+        type: String,
+        trim: true,
+        maxlength: 120,
+      },
+      pushedAt: Date,
+      syncedAt: Date,
+    },
   },
   {
     timestamps: true,

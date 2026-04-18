@@ -141,6 +141,9 @@ select {
 
 .solid-button,
 .ghost-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border: 0;
   cursor: pointer;
   padding: 0.9rem 1.1rem;
@@ -384,6 +387,32 @@ th {
   white-space: pre-wrap;
   font-family: "Consolas", "Courier New", monospace;
   color: var(--admin-muted);
+}
+
+.timeline {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.timeline-item {
+  padding: 0.9rem 1rem;
+  border-radius: 1rem;
+  border: 1px solid var(--admin-line);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.timeline-item strong {
+  display: block;
+  margin-bottom: 0.35rem;
+  text-transform: capitalize;
+}
+
+.timeline-item p {
+  margin: 0;
+}
+
+.timeline-item.admin {
+  border-color: rgba(243, 179, 90, 0.3);
 }
 
 @media (max-width: 1100px) {

@@ -412,6 +412,11 @@ textarea {
   margin-top: 2rem;
 }
 
+.contact-points a {
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
 .contact-form {
   padding: 1.5rem;
   border-radius: 1.7rem;
@@ -475,6 +480,36 @@ textarea {
   color: var(--text);
   padding: 0.95rem 1rem;
   outline: none;
+}
+
+.public-chat-thread {
+  display: grid;
+  gap: 0.8rem;
+  margin-top: 1.5rem;
+}
+
+.public-chat-item {
+  padding: 1rem;
+  border-radius: 1.2rem;
+  border: 1px solid var(--line);
+  background: var(--panel);
+}
+
+.public-chat-item span {
+  display: block;
+  margin-bottom: 0.35rem;
+  color: var(--muted);
+  text-transform: capitalize;
+  font-size: 0.85rem;
+}
+
+.public-chat-item p {
+  margin: 0;
+  line-height: 1.7;
+}
+
+.public-chat-item.admin {
+  border-color: rgba(45, 212, 191, 0.24);
 }
 
 .field-grid {

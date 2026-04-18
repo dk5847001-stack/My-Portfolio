@@ -6,3 +6,5 @@ export { Message } from "./message.js";
 export { Analytics } from "./analytics.js";
 export { Settings } from "./settings.js";
 export { ActivityLog } from "./activity-log.js";
+export { Notification } from "./notification.js";
+export { ChatConversation } from "./chat-conversation.js";

@@ -12,6 +12,9 @@ import { messagesRouter } from "./routes/messages-routes.js";
 import { analyticsRouter } from "./routes/analytics-routes.js";
 import { settingsRouter } from "./routes/settings-routes.js";
 import { smartFeaturesRouter } from "./routes/smart-features-routes.js";
+import { notificationsRouter } from "./routes/notifications-routes.js";
+import { integrationsRouter } from "./routes/integrations-routes.js";
+import { chatRouter } from "./routes/chat-routes.js";
 import { errorHandler, notFoundHandler } from "./middleware/error-handler.js";
 import "./models/index.js";
 
@@ -55,6 +58,9 @@ app.get("/api/health", (_req, res) => {
       "/api/analytics",
       "/api/settings",
       "/api/smart",
+      "/api/notifications",
+      "/api/integrations",
+      "/api/chat",
     ],
   });
 });
@@ -68,6 +74,9 @@ app.use("/api/messages", messagesRouter);
 app.use("/api/analytics", analyticsRouter);
 app.use("/api/settings", settingsRouter);
 app.use("/api/smart", smartFeaturesRouter);
+app.use("/api/notifications", notificationsRouter);
+app.use("/api/integrations", integrationsRouter);
+app.use("/api/chat", chatRouter);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

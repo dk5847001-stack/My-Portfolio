@@ -19,6 +19,9 @@ const navItems = [
   { to: "/projects", label: "Projects", roles: allowedAdminRoles },
   { to: "/blogs", label: "Blogs", roles: allowedAdminRoles },
   { to: "/ai", label: "AI Lab", roles: allowedAdminRoles },
+  { to: "/integrations", label: "Integrations", roles: allowedAdminRoles },
+  { to: "/chat", label: "Live Chat", roles: allowedAdminRoles },
+  { to: "/notifications", label: "Notifications", roles: allowedAdminRoles },
   { to: "/messages", label: "Messages", roles: allowedAdminRoles },
   { to: "/profile", label: "Profile", roles: allowedAdminRoles },
   { to: "/media", label: "Media", roles: allowedAdminRoles },
@@ -265,6 +268,30 @@ function AppShell({ session, logout }) {
             }
           />
           <Route
+            path="/integrations"
+            element={
+              <Guard session={session} allowedRoles={allowedAdminRoles}>
+                <IntegrationsPage session={session} />
+              </Guard>
+            }
+          />
+          <Route
+            path="/chat"
+            element={
+              <Guard session={session} allowedRoles={allowedAdminRoles}>
+                <ChatPage session={session} />
+              </Guard>
+            }
+          />
+          <Route
+            path="/notifications"
+            element={
+              <Guard session={session} allowedRoles={allowedAdminRoles}>
+                <NotificationsPage session={session} />
+              </Guard>
+            }
+          />
+          <Route
             path="/messages"
             element={
               <Guard session={session} allowedRoles={allowedAdminRoles}>
@@ -325,8 +352,10 @@ function OverviewPage({ session }) {
       apiRequest("/projects", {}, session.token).catch(() => ({ projects: [] })),
       apiRequest("/blogs", {}, session.token).catch(() => ({ blogs: [] })),
       apiRequest("/messages", {}, session.token).catch(() => ({ messages: [] })),
+      apiRequest("/chat", {}, session.token).catch(() => ({ conversations: [] })),
+      apiRequest("/notifications", {}, session.token).catch(() => ({ notifications: [] })),
     ])
-      .then(([users, projects, blogs, messages]) => {
+      .then(([users, projects, blogs, messages, conversations, notifications]) => {
         if (!active) {
           return;
         }
@@ -339,6 +368,8 @@ function OverviewPage({ session }) {
             projects: projects.projects?.length || 0,
             blogs: blogs.blogs?.length || 0,
             messages: messages.messages?.length || 0,
+            conversations: conversations.conversations?.length || 0,
+            notifications: notifications.notifications?.filter((item) => !item.read).length || 0,
           },
         });
       })
@@ -374,6 +405,8 @@ function OverviewPage({ session }) {
           ["Projects", overview.data?.projects],
           ["Blogs", overview.data?.blogs],
           ["Messages", overview.data?.messages],
+          ["Live chats", overview.data?.conversations],
+          ["Unread alerts", overview.data?.notifications],
         ].map(([label, value]) => (
           <article key={label} className="panel-card stat-card">
             <span>{label}</span>
@@ -389,6 +422,7 @@ function OverviewPage({ session }) {
             <li>Create a featured project</li>
             <li>Publish a new blog post</li>
             <li>Generate an AI blog draft and SEO meta</li>
+            <li>Sync GitHub projects and export resume PDF</li>
             <li>Review unread messages</li>
             <li>Refresh brand colors and SEO meta</li>
           </ul>
@@ -916,6 +950,188 @@ function AiLabPage({ session }) {
             </div>
           ) : null}
         </form>
+      </div>
+    </section>
+  );
+}
+
+function IntegrationsPage({ session }) {
+  const [state, setState] = useState({ busy: false, error: "", message: "" });
+
+  const runGithubSync = async () => {
+    try {
+      setState({ busy: true, error: "", message: "" });
+      const data = await apiRequest("/integrations/github-sync", { method: "POST" }, session.token);
+      setState({
+        busy: false,
+        error: "",
+        message: `${data.projects?.length || 0} GitHub repositories synced into projects.`,
+      });
+    } catch (error) {
+      setState({ busy: false, error: error.message, message: "" });
+    }
+  };
+
+  return (
+    <section className="page-stack">
+      <PanelHeader title="Integrations & Extra Systems" text="Run GitHub sync, export resume PDF, and manage external-system utilities." />
+      {state.error ? <p className="error-banner">{state.error}</p> : null}
+      {state.message ? <p className="success-banner">{state.message}</p> : null}
+      <div className="panel-grid">
+        <article className="panel-card stack">
+          <p className="eyebrow">GitHub API sync</p>
+          <p className="muted">
+            Pull repositories from GitHub and upsert them into the project library using configured environment credentials.
+          </p>
+          <button type="button" className="solid-button" onClick={runGithubSync} disabled={state.busy}>
+            {state.busy ? "Syncing..." : "Sync GitHub projects"}
+          </button>
+        </article>
+        <article className="panel-card stack">
+          <p className="eyebrow">Resume PDF generator</p>
+          <p className="muted">
+            Build a downloadable PDF resume from the latest portfolio profile, contact details, and featured projects.
+          </p>
+          <a href={`${DEFAULT_API_URL}/integrations/resume.pdf`} target="_blank" rel="noreferrer" className="solid-button">
+            Open resume PDF
+          </a>
+        </article>
+      </div>
+    </section>
+  );
+}
+
+function ChatPage({ session }) {
+  const [state, setState] = useState({ loading: true, error: "", conversations: [] });
+  const [replyText, setReplyText] = useState({});
+
+  const loadChats = async () => {
+    try {
+      setState((current) => ({ ...current, loading: true, error: "" }));
+      const data = await apiRequest("/chat", {}, session.token);
+      setState({ loading: false, error: "", conversations: data.conversations || [] });
+    } catch (error) {
+      setState({ loading: false, error: error.message, conversations: [] });
+    }
+  };
+
+  useEffect(() => {
+    loadChats();
+  }, []);
+
+  const sendReply = async (chatId) => {
+    try {
+      await apiRequest(
+        `/chat/${chatId}/reply`,
+        { method: "POST", body: JSON.stringify({ text: replyText[chatId] || "" }) },
+        session.token
+      );
+      setReplyText((current) => ({ ...current, [chatId]: "" }));
+      await loadChats();
+    } catch (error) {
+      setState((current) => ({ ...current, error: error.message }));
+    }
+  };
+
+  return (
+    <section className="page-stack">
+      <PanelHeader title="Live Chat Inbox" text="Review visitor conversations and send admin replies from the dashboard." />
+      {state.error ? <p className="error-banner">{state.error}</p> : null}
+      <div className="message-list">
+        {state.loading ? <div className="panel-card">Loading chats...</div> : null}
+        {!state.loading && state.conversations.length === 0 ? <div className="panel-card">No live chat conversations yet.</div> : null}
+        {state.conversations.map((conversation) => (
+          <article key={conversation.id} className="panel-card stack">
+            <div className="row-between">
+              <div>
+                <h3>{conversation.visitorName || "Visitor"}</h3>
+                <p className="muted">{conversation.visitorEmail}</p>
+              </div>
+              <span className="status-chip">{conversation.status}</span>
+            </div>
+            <div className="timeline">
+              {(conversation.messages || []).map((message, index) => (
+                <div key={`${conversation.id}-${index}`} className={`timeline-item ${message.sender}`}>
+                  <strong>{message.sender}</strong>
+                  <p>{message.text}</p>
+                </div>
+              ))}
+            </div>
+            <label className="field">
+              <span>Reply</span>
+              <textarea
+                rows="3"
+                value={replyText[conversation.id] || ""}
+                onChange={(event) =>
+                  setReplyText((current) => ({ ...current, [conversation.id]: event.target.value }))
+                }
+              />
+            </label>
+            <button type="button" className="solid-button" onClick={() => sendReply(conversation.id)}>
+              Send reply
+            </button>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function NotificationsPage({ session }) {
+  const [state, setState] = useState({ loading: true, error: "", notifications: [] });
+
+  const loadNotifications = async () => {
+    try {
+      setState((current) => ({ ...current, loading: true, error: "" }));
+      const data = await apiRequest("/notifications", {}, session.token);
+      setState({ loading: false, error: "", notifications: data.notifications || [] });
+    } catch (error) {
+      setState({ loading: false, error: error.message, notifications: [] });
+    }
+  };
+
+  useEffect(() => {
+    loadNotifications();
+  }, []);
+
+  const markRead = async (notificationId) => {
+    try {
+      await apiRequest(`/notifications/${notificationId}`, { method: "PATCH", body: JSON.stringify({ read: true }) }, session.token);
+      await loadNotifications();
+    } catch (error) {
+      setState((current) => ({ ...current, error: error.message }));
+    }
+  };
+
+  return (
+    <section className="page-stack">
+      <PanelHeader title="Notification System" text="Track system alerts from messages, chats, downloads, and GitHub sync events." />
+      {state.error ? <p className="error-banner">{state.error}</p> : null}
+      <div className="message-list">
+        {state.loading ? <div className="panel-card">Loading notifications...</div> : null}
+        {!state.loading && state.notifications.length === 0 ? <div className="panel-card">No notifications available.</div> : null}
+        {state.notifications.map((notification) => (
+          <article key={notification.id} className="panel-card">
+            <div className="row-between">
+              <div>
+                <h3>{notification.title}</h3>
+                <p className="muted">{notification.message}</p>
+              </div>
+              <div className="chip-row">
+                <span className="status-chip">{notification.type}</span>
+                <span className="status-chip">{notification.read ? "Read" : "Unread"}</span>
+              </div>
+            </div>
+            <div className="row-between">
+              <span className="muted">{new Date(notification.createdAt).toLocaleString()}</span>
+              {!notification.read ? (
+                <button type="button" className="ghost-button" onClick={() => markRead(notification.id)}>
+                  Mark read
+                </button>
+              ) : null}
+            </div>
+          </article>
+        ))}
       </div>
     </section>
   );
